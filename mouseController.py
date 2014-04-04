@@ -7,14 +7,21 @@ from pymouse import *
 #-->-->Camera initialization part
 camera_port = 0
 camera = cv2.VideoCapture(camera_port)
+camera.set(3, 640)
+camera.set(4, 480)
 m = PyMouse()
 print m.position()
 
 #class containing all the variables and funcitons used for motion detection 
 class motion(object):
+	prevCX = 0
+	prevCY = 0
+	initialized = 0
 
 	def _init_(self):
-		print "Yo"
+		self.prevCX = 0
+		self.prevCY = 0
+		self.initialized = 0
 
 	#-->-->Basic function to detect color and the motion
 	def detectColor(self,img):
@@ -49,6 +56,16 @@ class motion(object):
 				cx = int((x+w)/2)
 				cy = int((y+h)/2)
 				m.move(cx,cy)
+				if self.initialized==0:
+					self.prevCY = cy
+					self.prevCX = cx
+					self.initialized = 1
+				else:
+					mysum = abs(cy-self.prevCY)+abs(cx-self.prevCX)
+					self.prevCX = cx
+					self.prevCY = cy
+					if mysum>=25:
+						m.click(self.prevCX,self.prevCY,1)	
 			#drawing that contour on the image and the mask
 			cv2.drawContours(mask,[hull],-1,(0,255,0),1)
 			cv2.drawContours(mask,[maxcnt],-1,(0,255,0),1)
@@ -66,9 +83,13 @@ class motion(object):
 			#reading image from the camera
 			action = self.detectColor(img)
 			keypress = cv2.waitKey(10)
+			retval,img = camera.read()
 			if keypress==27:
 				break
-			retval,img = camera.read()
 
 obj = motion()
 obj.webcamLive()
+camera.release()
+cv2.destroyAllWindows()
+
+
